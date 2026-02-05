@@ -1,0 +1,13 @@
+ultralytics
+gTTS
+pygame
+opencv-python
+torch
+requests
+numpy
+Pillow
+transformers
+playsound
+deep-translator
+streamlit
+watchdog

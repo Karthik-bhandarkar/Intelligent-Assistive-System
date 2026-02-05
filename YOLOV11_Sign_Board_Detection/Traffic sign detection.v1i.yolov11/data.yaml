@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 13
+names: ['Left turn', 'Market in front', 'Mosque in front', 'Pedestrian crossing', 'Rail crossing', 'Rightturn', 'School in front', 'Speed breaker', 'college in front', 'crossroad', 'side road left', 'side road right', 'speed limit']
+
+roboflow:
+  workspace: trafficsigndetection-xhuv4
+  project: traffic-sign-detection-zzppi
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/trafficsigndetection-xhuv4/traffic-sign-detection-zzppi/dataset/1
