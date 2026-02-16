@@ -189,7 +189,7 @@ If you’d like to improve this project, follow these steps:
 Click the Fork button at the top right of this repository to create your own copy.
 
 2️⃣ Clone Your Fork
-git clone https://github.com/your-username/Intelligent-Assistive-System.git
+git clone https://github.com/Karthik-bhandarkar/Intelligent-Assistive-System.git
 cd Intelligent-Assistive-System
 
 3️⃣ Create a New Branch
