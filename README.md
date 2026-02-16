@@ -179,70 +179,88 @@ Application will open in your browser automatically.
 
 ---
 
-🤝 Contributing
+## 🤝 Contributing  
 
-Contributions are welcome and appreciated! 🚀
+Contributions are welcome and appreciated! 🚀  
 If you’d like to improve this project, follow these steps:
 
-1️⃣ Fork the Repository
+---
 
-Click the Fork button at the top right of this repository to create your own copy.
+### 1️⃣ Fork the Repository  
+Click the **Fork** button at the top right of this repository to create your own copy.
 
-2️⃣ Clone Your Fork
+---
+
+### 2️⃣ Clone Your Fork  
+
+```bash
 git clone https://github.com/Karthik-bhandarkar/Intelligent-Assistive-System.git
 cd Intelligent-Assistive-System
+```
 
-3️⃣ Create a New Branch
+---
 
-Create a feature branch for your changes:
+### 3️⃣ Create a New Branch  
 
+```bash
 git checkout -b feature/your-feature-name
+```
 
-4️⃣ Make Your Changes
+---
 
-Follow the existing project structure
+### 4️⃣ Make Your Changes  
 
-Keep code modular and readable
+- Follow the existing project structure  
+- Keep code modular and readable  
+- Add comments where necessary  
+- Test your changes before committing  
 
-Add comments where necessary
+---
 
-Test your changes before committing
+### 5️⃣ Commit Your Changes  
 
-5️⃣ Commit Your Changes
+```bash
 git add .
 git commit -m "Add: Short description of your feature"
+```
 
-6️⃣ Push to Your Fork
+---
+
+### 6️⃣ Push to Your Fork  
+
+```bash
 git push origin feature/your-feature-name
+```
 
-7️⃣ Create a Pull Request
+---
 
-Go to the original repository and click New Pull Request.
-Describe your changes clearly and link any related issues.
+### 7️⃣ Create a Pull Request  
 
-🛠 Contribution Ideas
+- Go to the original repository  
+- Click **New Pull Request**  
+- Describe your changes clearly  
+- Link any related issues  
 
-Improve model performance or optimization
+---
 
-Add new language support
+## 🛠 Contribution Ideas
 
-Enhance UI accessibility
+- Improve model performance or optimization  
+- Add new language support  
+- Enhance UI accessibility  
+- Improve hardware integration  
+- Add object tracking or navigation guidance  
+- Fix bugs or improve documentation  
 
-Improve hardware integration
+---
 
-Add object tracking or navigation guidance
+## 📜 Code Guidelines
 
-Fix bugs or improve documentation
+- Follow PEP8 style guidelines  
+- Keep functions modular  
+- Avoid unnecessary dependencies  
+- Document major changes  
 
-📜 Code Guidelines
-
-Follow PEP8 style guidelines
-
-Keep functions modular
-
-Avoid unnecessary dependencies
-
-Document major changes
+---
 
 Thank you for helping improve accessibility through technology 💙
-
