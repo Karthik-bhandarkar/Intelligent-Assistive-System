@@ -9,6 +9,7 @@ from PIL import Image
 from transformers import BlipProcessor, BlipForConditionalGeneration
 import torch
 from gtts import gTTS
+import pandas as pd
 
 from deep_translator import GoogleTranslator
 
