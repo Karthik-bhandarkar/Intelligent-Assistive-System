@@ -1,3 +1,8 @@
+"""
+One-off model export utility.
+Used during model training to convert best.pt PyTorch model to ONNX format.
+Note: This script is not part of the live production pipeline.
+"""
 import torch
 from ultralytics import YOLO
 

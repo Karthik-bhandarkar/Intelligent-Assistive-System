@@ -1,41 +1,26 @@
 import os
-import tempfile
+import sys
+import argparse
 import cv2
 import time
-import pygame
 import requests
 import numpy as np
-from gtts import gTTS
-from ultralytics import YOLO
 
+# Ensure the repo root is importable regardless of launch location
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from src.detection import yolo_sign_detection
+from src.tts import tts_audio
 
 class ObjectDetectionWithSound:
-    def __init__(self, model_path, detection_interval=5, conf_threshold=0.75):
-        self.model = YOLO(model_path)
+    def __init__(self, detection_interval=5, conf_threshold=0.6):
         self.detection_interval = detection_interval
         self.conf_threshold = conf_threshold
         self.last_detection_time = {}
-        pygame.mixer.init()
-
-    def play_sound_for_class(self, class_name):
-        """Convert class name to speech and play it."""
-        # Write to OS temp dir so generated mp3s are never git-tracked
-        audio_file = os.path.join(
-            tempfile.gettempdir(),
-            f"{class_name.replace(' ', '_')}.mp3"
-        )
-
-        # Generate and cache audio once (cache in temp dir)
-        if not os.path.exists(audio_file):
-            tts = gTTS(text=f"Alert: {class_name} detected!", lang='en', slow=False)
-            tts.save(audio_file)
-
-        pygame.mixer.music.load(audio_file)
-        pygame.mixer.music.play()
 
     def fetch_frame(self, source):
         """
-        Fetch a single frame from ESP32 camera safely or from local webcam.
+        Fetch a single frame from ESP32 camera URL or local webcam.
         """
         if isinstance(source, str) and source.startswith("http"):
             try:
@@ -43,11 +28,6 @@ class ObjectDetectionWithSound:
                 if response.status_code == 200:
                     img_array = np.asarray(bytearray(response.content), dtype=np.uint8)
                     frame = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
-                    
-                    if frame is None:
-                        print("Failed to decode frame (corrupt data).")
-                        return None
-                        
                     return frame
                 else:
                     print(f"Failed to fetch frame. HTTP {response.status_code}")
@@ -57,14 +37,17 @@ class ObjectDetectionWithSound:
                 return None
         else:
             # Handle webcam input
-            if not hasattr(self, "camera"):
-                self.camera = cv2.VideoCapture(int(source))
+            if not hasattr(self, "camera") or self.camera is None:
+                cam_id = 0
+                if str(source).isdigit():
+                    cam_id = int(source)
+                self.camera = cv2.VideoCapture(cam_id)
             ret, frame = self.camera.read()
             return frame if ret else None
 
     def detect_and_play_sound(self, source):
         """Main detection loop for both webcam and ESP32 streams."""
-        print("Starting object detection...")
+        print(f"Starting object detection (source: {source})...")
 
         try:
             while True:
@@ -74,27 +57,27 @@ class ObjectDetectionWithSound:
                     time.sleep(0.2)
                     continue
 
-                # Run YOLO inference
-                results = self.model.predict(source=frame, conf=self.conf_threshold, verbose=False)
-                detections = results[0].boxes
-                annotated_frame = results[0].plot()
+                # Run YOLO inference via src module
+                best_class, annotated_frame = yolo_sign_detection.detect_sign(
+                    frame,
+                    conf_threshold=self.conf_threshold,
+                    model_type='sign'
+                )
 
-                # Display annotated frame
-                cv2.imshow("Object Detection with Sound", annotated_frame)
+                if annotated_frame is not None:
+                    cv2.imshow("Object Detection with Sound", annotated_frame)
+                else:
+                    cv2.imshow("Object Detection with Sound", frame)
 
-                # Process detected objects
-                for box in detections:
-                    class_index = int(box.cls[0])
-                    class_name = self.model.names[class_index]
+                # Process detected class
+                if best_class:
                     current_time = time.time()
+                    if (best_class not in self.last_detection_time or
+                            (current_time - self.last_detection_time[best_class]) > self.detection_interval):
+                        self.last_detection_time[best_class] = current_time
+                        print(f"Detected: {best_class}")
+                        tts_audio.speak(f"Alert: {best_class} detected!", 'en')
 
-                    if (class_name not in self.last_detection_time or
-                            (current_time - self.last_detection_time[class_name]) > self.detection_interval):
-                        self.last_detection_time[class_name] = current_time
-                        print(f"Detected: {class_name}")
-                        self.play_sound_for_class(class_name)
-
-                # Exit loop when 'q' pressed
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     print("Exiting detection...")
                     break
@@ -103,21 +86,28 @@ class ObjectDetectionWithSound:
             print(f"Error during detection: {e}")
 
         finally:
-            if hasattr(self, "camera"):
+            if hasattr(self, "camera") and self.camera is not None:
                 self.camera.release()
             cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
-    # Initialize detector
-    detector = ObjectDetectionWithSound(
-        model_path=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "models", "best.pt"),
-        detection_interval=5,
-        conf_threshold=0.6
+    parser = argparse.ArgumentParser(description="Sign Board Detection CLI")
+    parser.add_argument(
+        "--source",
+        type=str,
+        default=None,
+        help="Input source: 'webcam', '0', or ESP32 URL (e.g. http://10.219.6.122/cam-hi.jpg)"
     )
+    args = parser.parse_args()
 
-    # To use local webcam → source = 0
-    # To use ESP32 camera → source = "http://<your_esp32_ip>/cam-hi.jpg"
-    cam_source = "http://10.219.6.122/cam-hi.jpg"
+    detector = ObjectDetectionWithSound(detection_interval=5, conf_threshold=0.6)
+
+    cam_source = args.source
+    if cam_source is None:
+        # Default to ESP32 camera URL if unspecified
+        cam_source = "http://10.219.6.122/cam-hi.jpg"
+    elif cam_source.lower() == "webcam":
+        cam_source = 0
 
     detector.detect_and_play_sound(source=cam_source)

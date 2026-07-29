@@ -1,3 +1,8 @@
+"""
+One-off training validation script.
+Used during model training to test ONNX model inference and audio alerts.
+Note: This script is not part of the live production pipeline.
+"""
 from ultralytics import YOLO
 from gtts import gTTS
 import pygame
