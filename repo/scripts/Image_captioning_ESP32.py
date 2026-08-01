@@ -56,8 +56,8 @@ def caption_thread_func(latest_frame_container, lang_code):
         else:
             time.sleep(0.1)
 
-def live_caption_from_esp32(lang_code):
-    print("Starting live ESP32 camera captioning...")
+def live_caption_from_esp32(lang_code, source="http://10.219.6.122/cam-hi.jpg"):
+    print(f"Starting live image captioning (source: {source})...")
     
     latest_frame_container = [None]
     
@@ -72,13 +72,13 @@ def live_caption_from_esp32(lang_code):
 
     try:
         while True:
-            pil_image = esp_stream.get_frame(ESP32_URL)
+            pil_image = esp_stream.get_frame(source)
             
             if pil_image is not None:
                 latest_frame_container[0] = pil_image
 
                 open_cv_image = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
-                cv2.imshow("ESP32 Live Feed (Press Q to Quit)", open_cv_image)
+                cv2.imshow("Live Feed (Press Q to Quit)", open_cv_image)
             else:
                 print("No frame received. Retrying...")
                 time.sleep(0.1)
@@ -98,6 +98,16 @@ def live_caption_from_esp32(lang_code):
 # MAIN
 # ===========================================================
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="Live Image Captioning CLI")
+    parser.add_argument(
+        "--source",
+        type=str,
+        default=None,
+        help="Input source: 'webcam', '0', or ESP32 URL (e.g. http://10.219.6.122/cam-hi.jpg)"
+    )
+    args = parser.parse_args()
+
     print("=== Live ESP32 Image Captioning with Multi-Language Speech ===\n")
     print("Select the target language for speech output:")
 
@@ -111,8 +121,14 @@ def main():
         print("Invalid input. Defaulting to English.")
         lang_code = "en"
 
+    cam_source = args.source
+    if cam_source is None:
+        cam_source = "http://10.219.6.122/cam-hi.jpg"
+    elif cam_source.lower() == "webcam":
+        cam_source = 0
+
     print(f"\nSelected language: {selected_language_name}\n")
-    live_caption_from_esp32(lang_code)
+    live_caption_from_esp32(lang_code, source=cam_source)
 
 if __name__ == "__main__":
     main()

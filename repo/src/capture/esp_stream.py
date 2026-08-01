@@ -3,39 +3,42 @@ import numpy as np
 import cv2
 from PIL import Image
 
+_cam = None
+
 def get_frame(url):
     """
-    Fetch a single frame from ESP32 camera, decode safely, and return as PIL Image (RGB).
+    Fetch a single frame from ESP32 camera URL or local webcam, decode safely, and return as PIL Image (RGB).
     """
+    global _cam
     try:
-        response = requests.get(url, stream=True, timeout=2)
-        if response.status_code == 200:
-            # 1. Safely read bytes
-            img_array = np.asarray(bytearray(response.content), dtype=np.uint8)
-            
-            # 2. Decode using imdecode (handles corrupt frames gracefully most of the time)
-            frame = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
-            
-            if frame is None:
-                # print("Failed to decode frame (corrupt data).")
+        if isinstance(url, str) and url.startswith("http"):
+            response = requests.get(url, stream=True, timeout=2)
+            if response.status_code == 200:
+                img_array = np.asarray(bytearray(response.content), dtype=np.uint8)
+                frame = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+                if frame is None:
+                    return None
+                frame = cv2.rotate(frame, cv2.ROTATE_180)
+                frame = cv2.resize(frame, (640, 480))
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                return Image.fromarray(frame_rgb)
+            else:
                 return None
-
-            # Rotate 180 degrees (Flip upside down) as requested ("rotate 90 again")
-            frame = cv2.rotate(frame, cv2.ROTATE_180)
-            
-            # Apply standard resolution (640x480)
-            frame = cv2.resize(frame, (640, 480))
-
-            # 3. Convert BGR (OpenCV) -> RGB (PIL/BLIP expectation)
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            
-            # 4. Convert to PIL Image
-            pil_image = Image.fromarray(frame_rgb)
-            
-            return pil_image
         else:
-            print(f"Failed to fetch frame. HTTP {response.status_code}")
+            # Handle webcam input ('webcam', 0, etc.)
+            if _cam is None or not _cam.isOpened():
+                cam_id = 0
+                if isinstance(url, int):
+                    cam_id = url
+                elif isinstance(url, str) and url.isdigit():
+                    cam_id = int(url)
+                _cam = cv2.VideoCapture(cam_id)
+            
+            ret, frame = _cam.read()
+            if ret and frame is not None:
+                frame_resized = cv2.resize(frame, (640, 480))
+                frame_rgb = cv2.cvtColor(frame_resized, cv2.COLOR_BGR2RGB)
+                return Image.fromarray(frame_rgb)
             return None
     except Exception as e:
-        # print(f"Error fetching frame: {e}")
         return None
