@@ -7,7 +7,6 @@ requests
 numpy
 Pillow
 transformers
-playsound
 deep-translator
 streamlit
 watchdog

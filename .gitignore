@@ -1,7 +1,15 @@
 # Virtual Environments
 venv/
+.venv/
 env/
 .env
+
+# Streamlit startup logs (dev only)
+streamlit_out.log
+streamlit_err.log
+streamlit_startup.log
+streamlit_startup_err.log
+pip_install.log
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -37,6 +45,7 @@ Thumbs.db
 # Generated at runtime — not source
 speed_results.txt
 caption_*.mp3
-caption.mp3
 tts_*.mp3
 output.mp3
+# Detection audio cached in CWD (if any old scripts wrote here)
+*_detected.mp3
