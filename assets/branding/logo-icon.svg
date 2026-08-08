@@ -1,0 +1,13 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img">
+<title>IAVS logo icon</title>
+<desc>A stylized eye with three radiating sound-wave arcs on a mid-tone indigo rounded-square background, symbolizing vision narrated as sound.</desc>
+<rect x="0" y="0" width="512" height="512" rx="100" fill="#4F46E5"/>
+
+<path d="M 413.6 156.4 A 130 130 0 0 1 413.6 355.6" fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" opacity="0.35"/>
+<path d="M 387.87 187.06 A 90 90 0 0 1 387.87 324.94" fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" opacity="0.6"/>
+<path d="M 362.15 217.7 A 50 50 0 0 1 362.15 294.3" fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" opacity="0.9"/>
+
+<path d="M 100 256 Q 200 178 300 256 Q 200 334 100 256 Z" fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linejoin="round"/>
+<circle cx="200" cy="256" r="42" fill="#F59E0B"/>
+<circle cx="184" cy="240" r="11" fill="#FFFDF5" opacity="0.9"/>
+</svg>

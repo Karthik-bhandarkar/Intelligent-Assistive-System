@@ -1,261 +1,186 @@
 <div align="center">
 
-<br/>
+<img src="assets/branding/logo-banner.svg" width="640" alt="IAVS — Intelligent Assistive Vision System">
 
-```
-██╗ █████╗ ██╗   ██╗███████╗
-██║██╔══██╗██║   ██║██╔════╝
-██║███████║██║   ██║███████╗
-██║██╔══██║╚██╗ ██╔╝╚════██║
-██║██║  ██║ ╚████╔╝ ███████║
-╚═╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝
-Intelligent Assistive Vision System
-```
+<h3>See the world. Hear the world.</h3>
 
-**Real-time environmental awareness for the visually impaired — powered by YOLOv11, BLIP, and multilingual voice feedback.**
-
-<br/>
+<p>Real-time environmental narration for the visually impaired — YOLOv11 detection, BLIP scene understanding, and multilingual voice feedback.</p>
 
 [![Python](https://img.shields.io/badge/Python-3.8%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.x-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)](https://streamlit.io)
-[![YOLOv11](https://img.shields.io/badge/YOLOv11-Ultralytics-F7931E?style=flat-square)](https://ultralytics.com)
 [![License](https://img.shields.io/badge/License-MIT-22C55E?style=flat-square)](LICENSE)
-[![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-8B5CF6?style=flat-square)](CONTRIBUTING.md)
 
-<br/>
-
-[Features](#-features) · [Architecture](#-architecture) · [Quickstart](#-quickstart) · [Usage](#-usage) · [Structure](#-project-structure) · [Roadmap](#-roadmap) · [Contributing](#-contributing)
+<p>
+<a href="#how-it-works">How it works</a> ·
+<a href="#quickstart">Quickstart</a> ·
+<a href="#accessibility-first-design">Accessibility</a> ·
+<a href="#project-structure">Structure</a> ·
+<a href="#contributing">Contributing</a>
+</p>
 
 </div>
 
 ---
 
-## Overview
+## What is IAVS?
 
-IAVS is an accessibility-first computer vision system that narrates the world in real time. Point a webcam (or an ESP32-CAM module) at any scene and the system will:
+IAVS is an accessibility-first computer vision system that narrates the world in real time. Point a webcam — or an ESP32-CAM module — at a scene, and the system detects hazards and signs, describes what it sees in natural language, translates that description into the user's preferred language, and speaks it aloud. No screen reading required; every interaction is voice-guided from the start.
 
-1. **Detect** objects and traffic/hazard signs using a custom-trained YOLOv11 model
-2. **Caption** the full scene in natural language via BLIP (Salesforce)
-3. **Translate** the output into the user's preferred language
-4. **Speak** the result aloud with gTTS audio playback
+## Why it matters
 
-Designed from the ground up for blind and low-vision users, the interface requires no reading — every interaction is voice-guided.
+Navigating an unfamiliar environment without sight means relying on hearing, memory, and whatever assistance is nearby. IAVS aims to give that awareness back in real time — turning a camera feed into spoken, actionable information about what's ahead: a sign, a crossing, an obstacle, a scene.
 
----
+## How it works
 
-## Features
+<div align="center">
+<img src="assets/diagrams/pipeline.svg" width="720" alt="Pipeline: camera feeds into parallel YOLOv11 detection and BLIP captioning, which converge into translation, then text-to-speech, then spoken audio output">
+</div>
 
-### Object & Sign Detection
-- Custom YOLOv11 model trained on traffic signs and road hazards
-- Pretrained YOLO (`yolo11n.pt`) for general everyday objects
-- Frame-level real-time inference via OpenCV
+<p align="center"><sub>Amber boxes run in parallel — sign/object detection and scene captioning happen independently, then converge before translation.</sub></p>
 
-### Scene Understanding
-- [BLIP](https://huggingface.co/Salesforce/blip-image-captioning-base) generates contextual, sentence-level scene descriptions
-- Goes beyond bounding boxes — understands *what is happening*, not just *what is there*
+1. **Camera** captures a frame (webcam or ESP32-CAM stream)
+2. **Detection** (YOLOv11) and **captioning** (BLIP) run on that frame
+3. The result is **translated** into the selected language
+4. **Text-to-speech** (gTTS) converts it to audio
+5. The user **hears** the result
 
-### Multilingual Voice Feedback
+## Core capabilities
+
+| Vision | Language | Interaction |
+|---|---|---|
+| Custom YOLOv11 model for traffic signs & road hazards | Translation into 5 languages via `deep-translator` | Voice-guided menu — no reading required |
+| Pretrained YOLO (`yolo11n.pt`) for general objects | Spoken feedback via gTTS + pygame | Simple 3-step flow: mode → language → camera |
+| BLIP scene captioning for full contextual description | | Works with USB webcam or ESP32-CAM |
+
+## Accessibility-first design
+
+Every part of the interaction is designed to not require sight or reading:
+
+- Navigation prompts are spoken, not just displayed
+- A simple, consistent 3-step flow (mode → language → start) rather than a complex menu tree
+- High-contrast interface as a fallback for low-vision (not no-vision) users
+- No step requires typing — selection-based interaction throughout
+
+## Multilingual voice feedback
 
 | Language | Code |
-|----------|------|
-| English  | `en` |
-| Kannada  | `kn` |
-| Hindi    | `hi` |
-| Tamil    | `ta` |
-| Telugu   | `te` |
+|---|---|
+| English | `en` |
+| Kannada | `kn` |
+| Hindi | `hi` |
+| Tamil | `ta` |
+| Telugu | `te` |
 
-Translation via `deep-translator` · TTS via `gTTS` · Playback via `pygame`
+Translation via [`deep-translator`](https://github.com/nidhaloff/deep-translator) · TTS via [`gTTS`](https://github.com/pndurang/gTTS) · Playback via `pygame`
 
-### Accessibility-First Interface
-- Voice-guided menu navigation — no reading required
-- High-contrast UI with large tap targets
-- Simple 3-step workflow: **Mode → Language → Camera**
+## Hardware
 
-### Hardware Support
-- Works with any USB webcam
-- Optimised for **ESP32-CAM** streams (low-cost portable deployment)
+**Webcam** — works out of the box with any standard USB webcam, no extra setup.
 
----
+**ESP32-CAM** — for a low-cost, portable deployment. Flash [`firmware/ESP_CAM.ino`](firmware/ESP_CAM.ino) to the board and point the app at its stream URL.
 
-## Architecture
+## Tech stack
 
-```
-┌─────────────────────────────────────────┐
-│              Input Sources              │
-│   Webcam / ESP32-CAM / Static Image     │
-└────────────────────┬────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────┐
-│           Frame Capture (OpenCV)        │
-└──────────────┬──────────────┬───────────┘
-               │              │
-               ▼              ▼
-   ┌───────────────┐  ┌───────────────────┐
-   │ YOLOv11       │  │  BLIP Captioning  │
-   │ Detection     │  │  (Transformers)   │
-   └───────┬───────┘  └────────┬──────────┘
-           │                   │
-           └─────────┬─────────┘
-                     │
-                     ▼
-        ┌────────────────────────┐
-        │   Translation Layer    │
-        │   (deep-translator)    │
-        └────────────┬───────────┘
-                     │
-                     ▼
-        ┌────────────────────────┐
-        │  Text-to-Speech (gTTS) │
-        │  + pygame Playback     │
-        └────────────┬───────────┘
-                     │
-                     ▼
-           🔊 Audio Feedback to User
-```
-
----
+| Layer | Technology |
+|---|---|
+| Interface | Streamlit |
+| Computer vision | OpenCV, Ultralytics YOLOv11 |
+| Scene understanding | Hugging Face Transformers (BLIP) |
+| Translation | deep-translator |
+| Text-to-speech | gTTS |
+| Audio playback | pygame |
+| Language | Python 3.8+ |
 
 ## Quickstart
-
-### Prerequisites
-
-- Python 3.8+
-- A webcam or an ESP32-CAM stream URL
-- ~4 GB free disk space (YOLO + Torch downloads)
-
-### 1 — Clone
 
 ```bash
 git clone https://github.com/Karthik-bhandarkar/Intelligent-Assistive-System.git
 cd Intelligent-Assistive-System
-```
-
-### 2 — Install dependencies
-
-```bash
 pip install -r requirements.txt
-```
-
-> **Note:** PyTorch and Ultralytics will download model weights on first run. This may take a few minutes.
-
-### 3 — Launch
-
-```bash
 streamlit run app/streamlit_app.py
 ```
 
-The app opens automatically in your browser at `http://localhost:8501`.
-
----
+The app opens at `http://localhost:8501`. PyTorch and Ultralytics will download model weights on first run — this can take a few minutes.
 
 ## Usage
 
-The interface walks you through three steps:
+**Web app** — three steps: select mode (captioning / detection / combined) → select language → start camera. All prompts are spoken.
 
-```
-Step 1 — Select Mode
-  ├── [1] Image Captioning only
-  ├── [2] Sign & Object Detection only
-  └── [3] Combined (Caption + Detection)
+**CLI launcher** — an alternative, terminal-based entry point:
 
-Step 2 — Select Language
-  ├── English / Kannada / Hindi / Tamil / Telugu
-
-Step 3 — Start Camera
-  └── Live feed begins; voice feedback triggers automatically
+```bash
+python scripts/main.py
 ```
 
-All navigation prompts are spoken aloud — keyboard/touch is optional.
+<details>
+<summary>Advanced: individual scripts and flags</summary>
 
----
+- `scripts/Image_captioning_ESP32.py` — live captioning loop
+- `scripts/Sign_scan_Esp32.py --source webcam` or `--source esp32` — sign detection on either input
+- `scripts/live.py` — visual-only stream preview, no audio
+- `scripts/manual.py` — manual webcam capture or file upload for one-off captioning
 
-## Project Structure
+</details>
+
+## Project structure
 
 ```
-intelligent-assistive-vision-system/
-│
+Intelligent-Assistive-System/
 ├── app/
-│   └── streamlit_app.py          # Main Streamlit entry point
-│
-├── core/
-│   ├── blip_caption.py           # BLIP scene captioning module
-│   ├── yolo_sign_detection.py    # YOLOv11 detection module
-│   ├── tts_audio.py              # Text-to-speech engine
-│   └── translator.py             # Language translation wrapper
-│
-├── models/
-│   ├── best.pt                   # Custom-trained sign detection model
-│   └── yolo11n.pt                # Pretrained general-purpose YOLO
-│
-├── training/
-│   └── YOLOV11_Sign_Board_Detection/   # Training data, configs, scripts
-│
+│   └── streamlit_app.py          # Web UI entry point
+├── src/                           # Core modules
+│   ├── capture/esp_stream.py
+│   ├── detection/yolo_sign_detection.py
+│   ├── captioning/blip_caption.py
+│   ├── translation/translator.py
+│   └── tts/tts_audio.py
+├── scripts/                       # CLI launcher + standalone tools
+│   ├── main.py
+│   ├── Image_captioning_ESP32.py
+│   ├── Sign_scan_Esp32.py
+│   ├── live.py
+│   └── manual.py
+├── models/                        # best.pt, best.onnx, yolo11n.pt
+├── assets/
+│   ├── audio/                     # pre-recorded alert clips
+│   ├── branding/                  # logo assets
+│   ├── diagrams/                  # pipeline.svg
+│   └── screenshots/
+├── firmware/
+│   └── ESP_CAM.ino                # ESP32-CAM firmware
+├── training/                      # YOLOv11 training notebooks & dataset
 ├── requirements.txt
-├── .gitignore
 └── README.md
 ```
 
-> See [RESTRUCTURE.md](RESTRUCTURE.md) for the automated migration script that moves files from the flat layout to this structure without breaking any imports.
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Interface | Streamlit |
-| Computer Vision | OpenCV, Ultralytics YOLOv11 |
-| Scene Understanding | Hugging Face Transformers (BLIP) |
-| Translation | deep-translator |
-| Text-to-Speech | gTTS |
-| Audio Playback | pygame |
-| Language | Python 3.8+ |
-
----
-
 ## Roadmap
 
-- [ ] Edge deployment (ONNX / TensorRT export for Raspberry Pi)
-- [ ] Persistent object tracking across frames
-- [ ] Navigation guidance ("obstacle 2 metres ahead, move right")
-- [ ] Expanded language support (Bengali, Marathi, Malayalam)
-- [ ] Offline TTS fallback (pyttsx3) for no-internet environments
-- [ ] Battery / power optimisation for ESP32-CAM
-
----
+| Now | Next | Later |
+|---|---|---|
+| Core detection + captioning + voice pipeline | Offline TTS fallback (pyttsx3) for no-internet use | Edge deployment (ONNX/TensorRT) |
+| ESP32-CAM + webcam support | Persistent object tracking across frames | Navigation guidance ("obstacle ahead, move right") |
+| 5-language translation | Expanded languages (Bengali, Marathi, Malayalam) | ESP32-CAM power optimization |
 
 ## Contributing
 
-Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a PR.
-
 ```bash
-# Quick workflow
 git checkout -b feature/your-feature-name
-# ... make changes, add tests, update docs ...
+# make changes, update docs
 git commit -m "feat: short description"
 git push origin feature/your-feature-name
-# Open a Pull Request on GitHub
+# open a Pull Request
 ```
 
+Follow [PEP 8](https://peps.python.org/pep-0008/), keep modules focused, document any public function you add.
+
 **Good first issues:** language support, UI accessibility improvements, documentation, performance profiling.
-
-Follow [PEP 8](https://peps.python.org/pep-0008/), keep modules focused, and document any public function you add.
-
----
 
 ## Acknowledgements
 
 - [Ultralytics](https://ultralytics.com) for YOLOv11
 - [Salesforce / Hugging Face](https://huggingface.co/Salesforce/blip-image-captioning-base) for BLIP
-- [Streamlit](https://streamlit.io) for the rapid UI framework
-
----
+- [Streamlit](https://streamlit.io) for the UI framework
 
 <div align="center">
-
-Built with care for accessibility · Bengaluru, India
-
-*"Technology should work for everyone."*
-
+<sub>Built with care for accessibility · Bengaluru, India</sub>
 </div>
