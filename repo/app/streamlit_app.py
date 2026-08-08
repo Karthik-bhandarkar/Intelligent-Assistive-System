@@ -9,6 +9,7 @@ import time
 import cv2
 import numpy as np
 import threading
+from PIL import Image
 
 # Import backend modules
 from src.capture import esp_stream
@@ -125,9 +126,12 @@ if 'last_processed_time' not in st.session_state:
     st.session_state['last_processed_time'] = 0
 if 'language_welcome_played' not in st.session_state:
     st.session_state['language_welcome_played'] = False
-
-# ESP32 URL (Configuration)
-ESP32_URL = "http://10.219.6.122/cam-hi.jpg"
+if 'source_type' not in st.session_state:
+    st.session_state['source_type'] = 'webcam'
+if 'esp32_url' not in st.session_state:
+    st.session_state['esp32_url'] = "http://10.219.6.122/cam-hi.jpg"
+if 'uploaded_file' not in st.session_state:
+    st.session_state['uploaded_file'] = None
 
 if 'welcome_played' not in st.session_state:
     st.session_state['welcome_played'] = False
@@ -212,33 +216,20 @@ elif st.session_state['language'] is None:
         if st.button("5. Telugu"): set_lang("Telugu", "te")
         
     if st.button("🔙 Go Back"):
-        # Reset language welcome so it plays again next time
         st.session_state['language_welcome_played'] = False
         reset_app()
 
 # =========================================================
-# STEP 3: CAMERA CONTROL
-# =========================================================
-# =========================================================
-# STEP 3: CAMERA CONTROL
+# STEP 3: CAMERA & INPUT SOURCE CONTROL
 # =========================================================
 else:
-    # Use full width container
-    
-    # Create Side-by-Side Layout
-    # Col 1: Camera (Larger), Col 2: Controls & Text (Smaller)
-    c_main, c_side = st.columns([0.7, 0.3], gap="large")
+    c_main, c_side = st.columns([0.65, 0.35], gap="large")
     
     with c_main:
-        # Camera Feed
-        # st.markdown("**Live Camera Feed:**")
         frame_placeholder = st.empty()
-        
-        # Caption below Camera (One Line Style)
         result_placeholder = st.empty()
 
     with c_side:
-        # 1. Status Info (Moved up since Result is gone from here)
         mode_display = {
             'caption': "🖼️ Image Captioning",
             'sign': "🚦 Sign Board Detection",
@@ -247,26 +238,44 @@ else:
         st.info(f"**Mode:** {mode_display[st.session_state['mode']]}\n\n**Lang:** {st.session_state['language_name']}")
         
         st.markdown("---")
+        st.markdown("### 📷 Input Camera Source")
         
-        # 2. Controls
+        source_idx = 0 if st.session_state['source_type'] == 'webcam' else (1 if st.session_state['source_type'] == 'esp32' else 2)
+        source_choice = st.radio(
+            "Select Source:",
+            ["💻 Laptop Webcam", "📡 ESP32-CAM", "📁 Upload Image"],
+            index=source_idx
+        )
+
+        if source_choice == "💻 Laptop Webcam":
+            st.session_state['source_type'] = 'webcam'
+        elif source_choice == "📡 ESP32-CAM":
+            st.session_state['source_type'] = 'esp32'
+            st.session_state['esp32_url'] = st.text_input("ESP32 Stream URL:", value=st.session_state['esp32_url'])
+        elif source_choice == "📁 Upload Image":
+            st.session_state['source_type'] = 'upload'
+            uploaded = st.file_uploader("Upload Image File:", type=["jpg", "jpeg", "png"])
+            if uploaded:
+                st.session_state['uploaded_file'] = uploaded
+
+        st.markdown("---")
+        
         if not st.session_state['camera_active']:
             if st.button("🟢 Start", use_container_width=True):
                 st.session_state['camera_active'] = True
-                tts_audio.speak("Starting Camera")
+                tts_audio.speak("Starting System")
                 st.rerun()
         else:
             if st.button("🔴 Stop", use_container_width=True):
                 st.session_state['camera_active'] = False
-                tts_audio.speak("Stopping Camera")
+                tts_audio.speak("Stopping System")
                 st.rerun()
 
-        # Repeat Audio
         if st.button("🔊 Repeat Audio", use_container_width=True):
             if st.session_state['last_output']:
                 translated_text = translator.translate_text(st.session_state['last_output'], st.session_state['language'])
                 tts_audio.speak(translated_text, st.session_state['language'])
 
-        # Reset
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("🔙 Reset", use_container_width=True):
              reset_app()
@@ -274,10 +283,6 @@ else:
 # =========================================================
 # MAIN LOOP
 # =========================================================
-# (Placeholders are now defined above in Step 3, we check if they exist)
-# If we are NOT in Step 3, these won't run, which is fine.
-
-# Global Queue for thread communication (Thread-safe & Persistent)
 import queue
 
 @st.cache_resource
@@ -286,7 +291,6 @@ def get_caption_queue():
 
 caption_queue = get_caption_queue()
 
-# Global Thread State (Thread-safe)
 @st.cache_resource
 class ThreadState:
     def __init__(self):
@@ -303,10 +307,8 @@ def run_blip_thread(image_copy):
     except Exception as e:
         print(f"BLIP Thread Error: {e}")
     finally:
-        # Reset flag safely
         thread_state.blip_active = False
 
-# Session State for Timers
 if 'last_sign_time' not in st.session_state:
     st.session_state['last_sign_time'] = 0
 if 'last_caption_time' not in st.session_state:
@@ -314,94 +316,72 @@ if 'last_caption_time' not in st.session_state:
 
 if st.session_state['camera_active'] and st.session_state['mode']:
     
-    # Run loop
     while st.session_state['camera_active']:
-        # Fetch Frame
-        pil_image = esp_stream.get_frame(ESP32_URL)
+        pil_image = None
+        
+        # 1. Fetch frame based on selected input source
+        if st.session_state['source_type'] == 'webcam':
+            pil_image = esp_stream.get_frame("webcam")
+        elif st.session_state['source_type'] == 'esp32':
+            pil_image = esp_stream.get_frame(st.session_state['esp32_url'])
+        elif st.session_state['source_type'] == 'upload' and st.session_state['uploaded_file'] is not None:
+            try:
+                pil_image = Image.open(st.session_state['uploaded_file']).convert("RGB")
+            except Exception as e:
+                print(f"Image load error: {e}")
         
         if pil_image is not None:
-            # Prepare frame for display
             display_image = pil_image
             
-            # --- 1. VISUALIZATION (YOLO) ---
-            # Determine which model to use for visuals
-            # If in 'caption' mode -> Use 'general' model (yolo11n.pt) to see objects like person, chair, etc.
-            # If in 'sign' or 'both' mode -> Use 'sign' model (best.pt) to see traffic signs.
-            # (In 'both', we prioritize signs because that's the specific safety feature, 
-            #  but could argue for general. Let's stick to signs for 'both' to avoid clutter 
-            #  or confusion with the specific sign detection audio)
-            
             vis_model_type = 'general' if st.session_state['mode'] == 'caption' else 'sign'
-            
-            # Run detection for visuals
             detected_obj, annotated_bgr = yolo_sign_detection.detect_sign(pil_image, model_type=vis_model_type)
             
             if annotated_bgr is not None:
-                # Convert BGR (OpenCV) -> RGB (Streamlit)
                 display_image = cv2.cvtColor(annotated_bgr, cv2.COLOR_BGR2RGB)
             
-            # --- 2. LOGIC HANDLING ---
             current_time = time.time()
             
-            # A) Speech for Sign Detection (Independent Timer)
-            # Only trigger specific sign audio if we are using the sign model
+            # Sign Detection Audio
             if st.session_state['mode'] in ['sign', 'both']:
-                # If we are in 'both', we used 'sign' model above, so 'detected_obj' is a sign.
-                # If we are in 'sign', 'detected_obj' is a sign.
-                
                 if current_time - st.session_state['last_sign_time'] >= 5:
-                    if detected_obj: # If a sign was found
+                    if detected_obj:
                          st.session_state['last_output'] = f"Sign Detected: {detected_obj}"
                          st.session_state['last_sign_time'] = current_time
-                         
-                         # Trigger Speech
                          translated_text = translator.translate_text(st.session_state['last_output'], st.session_state['language'])
                          tts_audio.speak(translated_text, st.session_state['language'])
 
-            # B) Image Captioning (Independent Timer & Thread Logic)
+            # Image Captioning Audio
             if st.session_state['mode'] in ['caption', 'both']:
-                
-                # Check timer (Reduced to 2s for faster response as requested)
                 if current_time - st.session_state['last_caption_time'] >= 3:
-                    # Check if thread is free
                     if not thread_state.blip_active:
                         thread_state.blip_active = True
-                        st.session_state['last_caption_time'] = current_time # Reset timer
-                        
-                        # Start Thread
+                        st.session_state['last_caption_time'] = current_time
                         img_copy = pil_image.copy()
                         t = threading.Thread(target=run_blip_thread, args=(img_copy,))
                         t.start()
                 
-                # Check for result from Queue (Non-blocking check)
                 try:
                     result_text = caption_queue.get_nowait()
                     st.session_state['last_output'] = result_text
-                    
-                    # Speak
                     translated_text = translator.translate_text(result_text, st.session_state['language'])
                     tts_audio.speak(translated_text, st.session_state['language'])
                 except queue.Empty:
                     pass
 
-            # DISPLAY MAIN FRAME
-            # Update the placeholder defined in Step 3
-            # We don't need columns here, the placeholder is already in a column
             frame_placeholder.image(display_image, channels="RGB", width=640)
             
-            # DISPLAY TEXT RESULT
             if st.session_state['last_output']:
-                 # Use compact Paragraph style instead of H2 to keep it roughly "one line"
                  result_placeholder.markdown(
                     f"<p style='text-align: center; color: #3498db; font-size: 24px; font-weight: bold; margin-top: 10px;'>{st.session_state['last_output']}</p>", 
                     unsafe_allow_html=True
                  )
-
         else:
-            frame_placeholder.error("Waiting for camera frame...")
+            if st.session_state['source_type'] == 'upload':
+                frame_placeholder.info("Please upload an image file using the side panel...")
+            else:
+                frame_placeholder.error("Waiting for camera frame...")
             time.sleep(1)
             
-        # Recommended Frame Rate: 0.1s delay (~10 FPS) for stability
         time.sleep(0.1)
 
 # =========================================================
